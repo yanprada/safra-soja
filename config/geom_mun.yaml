@@ -1,0 +1,15 @@
+read:
+  url: "https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2024/Brasil/BR_Municipios_2024.zip"
+
+transform:
+  simple_transformations:
+    dtype_conversion: 
+      CD_MUN: "str"
+      SIGLA_UF: "str"
+      NM_MUN: "str"
+
+    rename_columns: 
+      CD_MUN: "cd_mun"
+      NM_MUN: "nm_mun"
+      SIGLA_UF: "sg_uf"
+      geometry: "geometry"

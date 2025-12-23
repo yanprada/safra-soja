@@ -27,12 +27,12 @@ transform:
         produtividade_mil_ha_mil_t: "rendimento_medio_kg_ha"
 
       transform_columns: 
-        ano: "lambda x: '20' + x.strip().split('/')[1] if '/' in x else x.strip()"
+        ano: "lambda x: '20' + x.strip().split('/')[1] if '/' in x else x.strip()" # tratar casos como "2019/20" -> "2020"
         produto: "lambda x: x.strip()"
         sg_uf: "lambda x: x.strip()"
         
       filter_rows: 
-        ano: ["2020", "2021", "2022"]
+        ano: ["2019","2020", "2021", "2022"]
         produto: ["SOJA"]
         
 

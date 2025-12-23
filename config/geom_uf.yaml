@@ -1,0 +1,13 @@
+read:
+  url: "https://raw.githubusercontent.com/giuliano-macedo/geodata-br-states/refs/heads/main/geojson/br_states.json"
+
+transform:
+  simple_transformations:
+    dtype_conversion: 
+      Estado: "str"
+      PK_sigla: "str"
+
+    rename_columns: 
+      Estado: "nm_uf"
+      PK_sigla: "sg_uf"
+      geometry: "geometry"

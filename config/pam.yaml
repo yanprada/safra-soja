@@ -8,9 +8,10 @@ read:
             "112",  # Rendimento médio
             "215",  # Valor da produção
         ]
-  period: ["2020", "2021", "2022"]
+  period: ["2019", "2020", "2021"]
   filter_class: {"81": "2713"}
   ibge_territorial_code: "all"
+  cache_file: "data/pam_cache.parquet"
 
 transform:
     simple_transformations: 
@@ -34,15 +35,19 @@ transform:
             Área plantada: "area_plantada_ha"
 
         filter_rows: 
-            ano: ["2020", "2021", "2022"]
+            ano: ["2019", "2020", "2021"]
           
     merge:
         output_name: "pam_enriched"
         tables:
-            mun: 
+            geom_mun: 
                 merge_on: ["cd_mun"]
                 how: "left"
                 suffixes: ["_pam", "_mun"]
+            geom_uf: 
+                merge_on: ["sg_uf"]
+                how: "left"
+                suffixes: ["_pam", "_uf"]
             conab: 
                 merge_on: ["ano","sg_uf"]
                 how: "left"
@@ -56,6 +61,53 @@ transform:
             quantidade_producao_t_pam: "sum"
             rendimento_medio_kg_ha_pam: "mean"
             area_plantada_ha_pam: "sum"
+            valor_producao_mil_reais: "sum"
             area_plantada_ha_conab: "first"
             quantidade_producao_t_conab: "first"
             rendimento_medio_kg_ha_conab: "first"
+    
+    calculate_diff_pam_conab:
+        dataframe: "pam_uf"
+        output_name: "pam_uf"
+        group_cols: ["ano", "sg_uf"]
+        value_cols:
+            area_plantada_ha_pam: "area_plantada_ha_conab"
+            quantidade_producao_t_pam: "quantidade_producao_t_conab"
+            rendimento_medio_kg_ha_pam: "rendimento_medio_kg_ha_conab"
+
+    calculate_area_productivity_correlation:
+        dataframe: "pam_uf"
+        output_name: "pam_uf_area_productivity_corr"
+        area_col: "area_plantada_ha_pam"
+        productivity_col: "rendimento_medio_kg_ha_pam"
+
+    calculate_pct_mun_uf:
+        dataframes: ["pam_enriched", "pam_uf"]
+        output_name: "pam_enriched_pct"
+        join_cols: ["ano", "sg_uf"]
+        used_cols: [
+                    "area_plantada_ha_pam",
+                    "quantidade_producao_t_pam",
+                    "valor_producao_mil_reais"
+                    ]
+    calculate_production_area_growth:
+        dataframes: ["pam_enriched_pct", "pam_uf"]
+        output_name: "growth"
+        group_cols: [["sg_uf", "cd_mun"], ["sg_uf"]]
+        value_cols: ["area_plantada_ha_pam", "quantidade_producao_t_pam", "rendimento_medio_kg_ha_pam", "valor_producao_mil_reais"]
+        year_col: "ano"
+        base_year: "2019"
+        target_year: "2021"
+
+    project_pam_next_year:
+        dataframes: ["pam_enriched_pct", "conab"]
+        output_name: "pam_projected_2022"
+        group_cols: ["sg_uf"]
+        level_analysis: "cd_mun"
+        value_cols: 
+            pct_mun_uf_area_plantada_ha_pam: "area_plantada_ha"
+            pct_mun_uf_quantidade_producao_t_pam: "quantidade_producao_t"
+                    
+        year_col: "ano"
+        reference_year: "2021"
+        projected_year: "2022"
