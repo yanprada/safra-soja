@@ -235,9 +235,6 @@ class CalculateAreaGrowthStrategy:
         output_name = params.get("output_name", "production_area_growth")
         for i, table_name in enumerate(table_names):
             df = data[table_name].copy()
-            import ipdb
-
-            ipdb.set_trace()
             df_base = df[df["ano"] == base_year][value_cols + group_cols[i]]
             df_target = df[df["ano"] == target_year][value_cols + group_cols[i]]
             df_merged = df_base.merge(
