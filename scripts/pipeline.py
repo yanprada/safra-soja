@@ -18,7 +18,7 @@ class Pipeline:
     def save_data(self, data: dict[str, pd.DataFrame]) -> None:
         """Save transformed data to disk."""
         for key, table in data.items():
-            table.to_parquet(f"{key}.parquet", index=False)
+            table.to_csv(f"data/{key}.csv", index=False)
 
     def run(self) -> None:
         """Execute the data pipeline."""
