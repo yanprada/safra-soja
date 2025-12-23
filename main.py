@@ -1,7 +1,7 @@
 import yaml
-from src.pipeline import Pipeline
-from src.reader import DataReader
-from src.transformer import DataTransformer
+from scripts.pipeline import Pipeline
+from scripts.aux.reader import DataReader
+from scripts.aux.transformer import DataTransformer
 
 
 def load_config() -> dict:
@@ -15,7 +15,8 @@ def load_config() -> dict:
     return {
         "conab": load("config/conab.yaml"),
         "pam": load("config/pam.yaml"),
-        "mun": load("config/mun_uf.yaml"),
+        "geom_mun": load("config/geom_mun.yaml"),
+        "geom_uf": load("config/geom_uf.yaml"),
     }
 
 
