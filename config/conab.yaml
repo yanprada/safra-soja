@@ -1,0 +1,38 @@
+read:
+  url: "https://portaldeinformacoes.conab.gov.br/downloads/arquivos/SerieHistoricaGraos.txt"
+  sep: ";"
+  encoding: "latin-1"
+
+transform:
+  simple_transformations:
+      dtype_conversion: 
+        ano_agricola: "str"
+        uf: "str"
+        produto: "str"
+        area_plantada_mil_ha: "float"
+        producao_mil_t: "float"
+        produtividade_mil_ha_mil_t: "float"
+
+      change_units:
+        area_plantada_mil_ha: 1000
+        producao_mil_t: 1000
+        produtividade_mil_ha_mil_t: 1000
+
+      rename_columns: 
+        ano_agricola: "ano"
+        uf: "sg_uf"
+        produto: "produto"
+        area_plantada_mil_ha: "area_plantada_ha"
+        producao_mil_t: "quantidade_producao_t"
+        produtividade_mil_ha_mil_t: "rendimento_medio_kg_ha"
+
+      transform_columns: 
+        ano: "lambda x: '20' + x.strip().split('/')[1] if '/' in x else x.strip()"
+        produto: "lambda x: x.strip()"
+        sg_uf: "lambda x: x.strip()"
+        
+      filter_rows: 
+        ano: ["2020", "2021", "2022"]
+        produto: ["SOJA"]
+        
+

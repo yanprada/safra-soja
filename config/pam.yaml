@@ -1,0 +1,61 @@
+read:
+  table_code: 1612
+  territorial_level: 6
+  variables: [
+            "109",  # Área plantada
+            "216",  # Área colhida
+            "214",  # Quantidade produzida
+            "112",  # Rendimento médio
+            "215",  # Valor da produção
+        ]
+  period: ["2020", "2021", "2022"]
+  filter_class: {"81": "2713"}
+  ibge_territorial_code: "all"
+
+transform:
+    simple_transformations: 
+        dtype_conversion:
+            D1C: "str"
+            D2N: "str"
+            V: "float"
+
+        pivot_table: 
+            index: ["D1C", "D2N"]
+            columns: "D4N"
+            values: "V"
+
+        rename_columns: 
+            D1C: "cd_mun"
+            D2N: "ano"
+            Quantidade produzida: "quantidade_producao_t"
+            Rendimento médio da produção: "rendimento_medio_kg_ha"
+            Valor da produção: "valor_producao_mil_reais"
+            Área colhida: "area_colhida_ha"
+            Área plantada: "area_plantada_ha"
+
+        filter_rows: 
+            ano: ["2020", "2021", "2022"]
+          
+    merge:
+        output_name: "pam_enriched"
+        tables:
+            mun: 
+                merge_on: ["cd_mun"]
+                how: "left"
+                suffixes: ["_pam", "_mun"]
+            conab: 
+                merge_on: ["ano","sg_uf"]
+                how: "left"
+                suffixes: ["_pam", "_conab"]
+                
+    groupby:
+        dataframe: "pam_enriched"
+        output_name: "pam_uf"
+        group_cols: ["ano", "sg_uf"]
+        aggregations:
+            quantidade_producao_t_pam: "sum"
+            rendimento_medio_kg_ha_pam: "mean"
+            area_plantada_ha_pam: "sum"
+            area_plantada_ha_conab: "first"
+            quantidade_producao_t_conab: "first"
+            rendimento_medio_kg_ha_conab: "first"
