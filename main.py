@@ -2,6 +2,7 @@ import yaml
 from scripts.pipeline import Pipeline
 from scripts.aux.reader import DataReader
 from scripts.aux.transformer import DataTransformer
+from scripts.aux.vizualizer import DataVizualizer
 
 
 def load_config() -> dict:
@@ -25,7 +26,8 @@ def main():
     config = load_config()
     reader = DataReader(config)
     transformer = DataTransformer(config)
-    pipeline = Pipeline(reader, transformer)
+    vizualizer = DataVizualizer(config)
+    pipeline = Pipeline(reader, transformer, vizualizer)
     pipeline.run()
 
 

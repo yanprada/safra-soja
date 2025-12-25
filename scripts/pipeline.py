@@ -10,10 +10,18 @@ class DataTransformer(Protocol):
     def transform(self, data: Dict[str, Any]) -> Dict[str, Any]: ...
 
 
+class DataVizualizer(Protocol):
+    def vizualize(self, data: Dict[str, pd.DataFrame]) -> None: ...
 class Pipeline:
-    def __init__(self, reader: DataReader, transformer: DataTransformer):
+    def __init__(
+        self,
+        reader: DataReader,
+        transformer: DataTransformer,
+        vizualizer: DataVizualizer,
+    ) -> None:
         self.reader = reader
         self.transformer = transformer
+        self.vizualizer = vizualizer
 
     def save_data(self, data: dict[str, pd.DataFrame]) -> None:
         """Save transformed data to disk."""
@@ -24,4 +32,5 @@ class Pipeline:
         """Execute the data pipeline."""
         data = self.reader.read()
         transformed_data = self.transformer.transform(data)
+        self.vizualizer.vizualize(transformed_data)
         self.save_data(transformed_data)

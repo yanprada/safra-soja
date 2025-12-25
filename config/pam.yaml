@@ -56,7 +56,7 @@ transform:
     groupby:
         dataframe: "pam_enriched"
         output_name: "pam_uf"
-        group_cols: ["ano", "sg_uf"]
+        group_cols: ["ano", "regiao" ,"sg_uf"]
         aggregations:
             quantidade_producao_t_pam: "sum"
             rendimento_medio_kg_ha_pam: "mean"
@@ -69,7 +69,7 @@ transform:
     calculate_diff_pam_conab:
         dataframe: "pam_uf"
         output_name: "pam_uf"
-        group_cols: ["ano", "sg_uf"]
+        group_cols: ["ano", "regiao", "sg_uf"]
         value_cols:
             area_plantada_ha_pam: "area_plantada_ha_conab"
             quantidade_producao_t_pam: "quantidade_producao_t_conab"
@@ -84,7 +84,7 @@ transform:
     calculate_pct_mun_uf:
         dataframes: ["pam_enriched", "pam_uf"]
         output_name: "pam_enriched_pct"
-        join_cols: ["ano", "sg_uf"]
+        join_cols: ["ano", "regiao", "sg_uf"]
         used_cols: [
                     "area_plantada_ha_pam",
                     "quantidade_producao_t_pam",
@@ -93,7 +93,7 @@ transform:
     calculate_production_area_growth:
         dataframes: ["pam_enriched_pct", "pam_uf"]
         output_name: "growth"
-        group_cols: [["sg_uf", "cd_mun"], ["sg_uf"]]
+        group_cols: [["regiao", "sg_uf", "cd_mun"], ["regiao", "sg_uf"]]
         value_cols: ["area_plantada_ha_pam", "quantidade_producao_t_pam", "rendimento_medio_kg_ha_pam", "valor_producao_mil_reais"]
         year_col: "ano"
         base_year: "2019"
@@ -111,3 +111,35 @@ transform:
         year_col: "ano"
         reference_year: "2021"
         projected_year: "2022"
+
+vizualize:
+    plot_divergence_line:
+        dataframe: "pam_uf"
+        group_cols: [["ano", "regiao"], ["ano", "regiao"]]
+        x_cols: ["ano", "ano"]
+        y_cols: ["diff_area_plantada_ha_conab_pam", "rate_area_plantada_ha_conab_pam"]
+        rate_suffixes: ["pam", "conab"]
+        recalculate_rates: [False, True]
+        add_straight_line: [[True, 0], [True, 1]]
+        analysis_cols: ["regiao", "regiao"]
+        titles: ["Divergência entre Área Plantada de Soja Pam e Conab por Região do Brasil",
+                "Taxa de Divergência entre Área Plantada de Soja Pam e Conab por Região do Brasil"]
+        subtitles: ["Valores negativos indicam que a Pam reportou uma área plantada menor que a Conab",
+                    "Valores abaixo de 1 indicam que a Pam reportou uma área plantada menor que a Conab"]
+        x_labels: ["Ano", "Ano"]
+        y_labels: ["Diferença na Área Plantada (ha)", "Taxa de Diferença na Área Plantada"]
+        output_files: ["plots/divergence_area_plantada_pam_conab.png", "plots/rate_divergence_area_plantada_pam_conab.png"]
+
+    plot_divergence_scatter:
+        dataframe: "pam_uf"
+        group_cols: [["regiao", "sg_uf"]]
+        x_cols: ["area_plantada_ha_pam"]
+        y_cols: ["area_plantada_ha_conab"]
+        add_straight_line: [true]
+        analysis_cols: [["regiao", "sg_uf"]]
+        color_cols: ["regiao"]
+        titles: ["Análise de Área Plantada de Soja - Pam x Conab - Região do Brasil"]
+        subtitles: [""]
+        x_labels: ["Área Plantada (ha)"]
+        y_labels: ["Rendimento Médio (kg/ha)"]
+        output_files: ["plots/area_uf_divergence_pam_conab.png"]
