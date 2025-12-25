@@ -20,6 +20,12 @@ class CalculationStrategy(Protocol):
     ) -> Dict[str, pd.DataFrame]: ...
 
 
+class PlotStrategy(Protocol):
+    """Interface for complex multi-DataFrame plotting strategies."""
+
+    def apply(self, data: Dict[str, pd.DataFrame], params: Any) -> None: ...
+
+
 # --- Simple Transformation Strategies ---
 
 
@@ -94,12 +100,12 @@ class CalculateDiffStrategy:
         value_cols = params.get("value_cols", {})
         group_cols = params.get("group_cols", [])
         dfs = []
-        for col_pam, col_conab in value_cols.items():
-            diff_col = f"diff_{col_pam.replace('_pam', '')}_conab_pam"
-            pct_col = f"rate_{col_pam.replace('_pam', '')}_conab_pam"
+        for col1, col2 in value_cols.items():
+            diff_col = f"diff_{col1.replace('_pam', '')}_conab_pam"
+            pct_col = f"rate_{col1.replace('_pam', '')}_conab_pam"
             df = data[table].copy()
-            df[diff_col] = df[col_conab] - df[col_pam]
-            df[pct_col] = (df[diff_col] / df[col_pam].replace(0, pd.NA)).fillna(0)
+            df[diff_col] = df[col1] - df[col2]
+            df[pct_col] = (df[col1] / df[col2].replace(0, pd.NA)).fillna(0)
             dfs.append(df[group_cols + [diff_col, pct_col]])
         dfs.append(data[table])
         if dfs:
@@ -116,14 +122,16 @@ class CalculatePctStrategy:
         self, df: pd.DataFrame, join_cols: List[str], used_cols: List[str]
     ) -> Dict[str, pd.DataFrame]:
         """Tests if the percentage columns sum to 1 for each year and state."""
-        for year, state in df[join_cols].drop_duplicates().values:
+        for year, region, state in df[join_cols].drop_duplicates().values:
             for col in used_cols:
                 pct_col = f"pct_mun_uf_{col}"
                 if pct_col not in df.columns:
                     continue
-                sample = df[(df[join_cols[0]] == year) & (df[join_cols[1]] == state)][
-                    [col, pct_col]
-                ]
+                sample = df[
+                    (df[join_cols[0]] == year)
+                    & (df[join_cols[1]] == region)
+                    & (df[join_cols[2]] == state)
+                ][[col, pct_col]]
                 total = sample[col].sum()
                 pct_sum = sample[pct_col].sum()
                 if not pd.isna(total) and total != 0:
@@ -301,6 +309,7 @@ class DataTransformer:
         self, data: Dict[str, pd.DataFrame]
     ) -> Dict[str, pd.DataFrame]:
         """Handle simple transformations on the data."""
+        print("Handling simple transformations...")
         for key, _ in data.items():
             dataset_config = self.config.get(key, {})
             transformations = dataset_config.get("transform", {}).get(
@@ -315,11 +324,11 @@ class DataTransformer:
 
     def handle_merges(self, data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
         """Handle joining of dataframes based on configuration."""
+        print("Handling merges...")
         for key in list(data.keys()):
             dataset_config = self.config.get(key, {})
             merge_params = dataset_config.get("transform", {}).get("merge", {})
             if merge_params:
-                print(f"Joining data starting with base table: {key}")
                 output_name = merge_params.get("output_name", "results")
                 data[output_name] = self._merge_table(
                     data, key, merge_params.get("tables", {})
@@ -328,6 +337,7 @@ class DataTransformer:
 
     def handle_groupbys(self, data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
         """Handle groupby operations based on configuration."""
+        print("Handling groupbys...")
         for key in list(data.keys()):
             dataset_config = self.config.get(key, {})
             groupby_params = dataset_config.get("transform", {}).get("groupby", {})
@@ -350,6 +360,7 @@ class DataTransformer:
         Handle calculations based on configuration.
         Iterates through registered calculation strategies and applies them if present in config.
         """
+        print("Handling calculations...")
         for key in list(data.keys()):
             dataset_config = self.config.get(key, {})
             transform_config = dataset_config.get("transform", {})
@@ -364,11 +375,9 @@ class DataTransformer:
 
     def transform(self, data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
         """Transform the data based on configuration."""
+        print("--------- Starting data transformation ---------")
         data = self.handle_simple_transformations(data)
         data = self.handle_merges(data)
         data = self.handle_groupbys(data)
         data = self.handle_calculations(data)
-        import ipdb
-
-        ipdb.set_trace()
         return data

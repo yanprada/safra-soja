@@ -18,6 +18,7 @@ class Data:
 
     read: dict
     transform: dict[str, dict[str, str]]
+    vizualize: dict[str, dict[str, str]]
 
 
 class DataReader:
@@ -78,6 +79,7 @@ class DataReader:
 
     def read(self) -> dict[str, pd.DataFrame]:
         """Read data from both Conab and PAM sources."""
+        print("--------- Starting data reading ---------")
         conab_data = self.read_conab()
         geom_mun_data = self.read_geom_mun()
         geom_uf_data = self.read_geom_uf()
