@@ -6,8 +6,19 @@ transform:
     dtype_conversion: 
       Estado: "str"
       PK_sigla: "str"
+      FK_macro: "str"
 
     rename_columns: 
       Estado: "nm_uf"
       PK_sigla: "sg_uf"
       geometry: "geometry"
+      FK_macro: "regiao"
+
+    transform_columns: 
+      regiao: "lambda x: 'Sul' if x=='S' else (
+                'Norte' if x=='N' else (
+                'Nordeste' if x=='NE' else (
+                'Centro-Oeste' if x=='CO' else (
+                'Sudeste' if x=='SE' else x))))
+                "
+vizualize: {}
