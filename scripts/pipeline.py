@@ -1,5 +1,6 @@
 from typing import Dict, Any, Protocol
 import pandas as pd
+from tqdm import tqdm
 
 
 class DataReader(Protocol):
@@ -25,8 +26,8 @@ class Pipeline:
 
     def save_data(self, data: dict[str, pd.DataFrame]) -> None:
         """Save transformed data to disk."""
-        for key, table in data.items():
-            table.to_csv(f"data/{key}.csv", index=False)
+        for key, table in tqdm(data.items(), desc="Saving data"):
+            table.to_parquet(f"data/{key}.parquet", index=False)
 
     def run(self) -> None:
         """Execute the data pipeline."""
