@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Dict, Any, Protocol, Type, List
+from adjustText import adjust_text
 
 
 # --- Protocols ---
@@ -98,7 +99,7 @@ class PlotDivergenceScatterStrategy:
 
     def apply(self, data: Dict[str, pd.DataFrame], params: Dict[str, Any]) -> None:
 
-        table_name = params.get("dataframe", "")
+        tables_name = params.get("dataframes", "")
         x_cols = params.get("x_cols", "")
         y_cols = params.get("y_cols", "")
         color_cols = params.get("color_cols", "")
@@ -108,27 +109,44 @@ class PlotDivergenceScatterStrategy:
         add_straight_line = params.get("add_straight_line", False)
         x_labels = params.get("x_labels", x_cols)
         y_labels = params.get("y_labels", y_cols)
+        split_zones = params.get("split_zones", False)
         output_files = params.get("output_files", ["./plots/scatter_plot.png"])
 
-        df = data[table_name].copy()
+        for i, table_name in enumerate(tables_name):
+            df = data[table_name].copy()
 
-        for i, analysis_col in enumerate(analysis_cols):
             _, ax = plt.subplots(figsize=(12, 8))
 
             ax.set_facecolor("white")
             for spine in ax.spines.values():
                 spine.set_visible(False)
 
-            for label, grp in df.groupby(analysis_col):
-                import ipdb
+            group_keys = analysis_cols[i]
+            if color_cols[i] and color_cols[i] not in (
+                analysis_cols[i]
+                if isinstance(analysis_cols[i], list)
+                else [analysis_cols[i]]
+            ):
+                if isinstance(analysis_cols[i], list):
+                    group_keys = analysis_cols[i] + [color_cols[i]]
+                else:
+                    group_keys = [analysis_cols[i], color_cols[i]]
 
-                ipdb.set_trace()
+            df_grouped = df.groupby(group_keys).sum(numeric_only=True).reset_index()
 
+            texts = []
+            for label, grp in df_grouped.groupby(analysis_cols[i]):
                 if color_cols[i] == "":
-                    grp.plot.scatter(x=x_cols[i], y=y_cols[i], ax=ax, label=label)
+                    grp.plot.scatter(
+                        x=x_cols[i],
+                        y=y_cols[i],
+                        ax=ax,
+                        label=label,
+                        legend=False,
+                        s=100,
+                    )
                 else:
                     color_values = df[color_cols[i]].unique()
-
                     color_map = dict(
                         zip(
                             color_values,
@@ -141,28 +159,96 @@ class PlotDivergenceScatterStrategy:
                         ax=ax,
                         label=label,
                         c=grp[color_cols[i]].map(color_map),
+                        legend=False,
+                        s=100,
                     )
-
-                # Add labels to each scatter point
                 for _, row in grp.iterrows():
-                    ax.text(
+
+                    label_text = str(row[analysis_cols[i][1]])
+
+                    t = ax.text(
                         row[x_cols[i]],
                         row[y_cols[i]],
-                        f" {row[analysis_col].values[-1]}",
+                        label_text,
                         fontsize=9,
-                        verticalalignment="bottom",
                     )
+                    texts.append(t)
 
-            if add_straight_line:
-                max_val = max(df[x_cols[i]].max(), df[y_cols[i]].max())
+            if add_straight_line[i]:
+                max_val = max(df_grouped[x_cols[i]].max(), df_grouped[y_cols[i]].max())
                 ax.plot(
                     [0, max_val], [0, max_val], color="red", linestyle="--", linewidth=1
                 )
+            adjust_text(
+                texts,
+                arrowprops=dict(arrowstyle="-", color="gray", lw=0.5),
+                force_points=0.2,
+                force_text=0.2,
+                expand_points=(1.2, 1.2),
+            )
+            if split_zones[i]:
+                x_max = df_grouped[x_cols[i]].max()
+                x_min = df_grouped[x_cols[i]].min()
+                y_max = df_grouped[y_cols[i]].max()
+                y_min = df_grouped[y_cols[i]].min()
+
+                lim_x_pos = max(x_max, 0) * 1.1
+                lim_x_neg = min(x_min, 0) * 1.1
+                lim_y_pos = max(y_max, 0) * 1.1
+                lim_y_neg = min(y_min, 0) * 1.1
+
+                # Top-Right (Green) - Positive X, Positive Y
+                ax.fill_between(
+                    [0, lim_x_pos],
+                    0,
+                    lim_y_pos,
+                    color="green",
+                    alpha=0.1,
+                    zorder=0,
+                    linewidth=0,
+                )
+                # Top-Left (Yellow) - Negative X, Positive Y
+                ax.fill_between(
+                    [lim_x_neg, 0],
+                    0,
+                    lim_y_pos,
+                    color="yellow",
+                    alpha=0.1,
+                    zorder=0,
+                    linewidth=0,
+                )
+                # Bottom-Left (Red) - Negative X, Negative Y
+                ax.fill_between(
+                    [lim_x_neg, 0],
+                    lim_y_neg,
+                    0,
+                    color="red",
+                    alpha=0.1,
+                    zorder=0,
+                    linewidth=0,
+                )
+                # Bottom-Right (Orange) - Positive X, Negative Y
+                ax.fill_between(
+                    [0, lim_x_pos],
+                    lim_y_neg,
+                    0,
+                    color="orange",
+                    alpha=0.1,
+                    zorder=0,
+                    linewidth=0,
+                )
+
+                # Add axis lines at 0,0
+                ax.axhline(0, color="black", linewidth=0.8)
+                ax.axvline(0, color="black", linewidth=0.8)
+
+                # Set limits
+                ax.set_xlim(lim_x_neg, lim_x_pos)
+                ax.set_ylim(lim_y_neg, lim_y_pos)
             plt.suptitle(titles[i], fontsize=16, fontweight="bold")
             plt.title(subtitles[i], fontsize=12)
             plt.ylabel(y_labels[i], fontsize=12)
             plt.xlabel(x_labels[i], fontsize=12)
-            # plt.legend(title=analysis_col, bbox_to_anchor=(1.05, 1), loc="upper left")
             plt.grid(True, linestyle="--", alpha=0.7)
             plt.tight_layout()
             os.makedirs(os.path.dirname(output_files[i]), exist_ok=True)
