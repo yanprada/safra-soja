@@ -69,13 +69,17 @@ class DataReader:
         """Read geometries for Brazilian municipalities."""
         params = self.mun_params.read
         url = params.get("url")
-        return gpd.read_file(url)
+        df = gpd.read_file(url)
+        df["geometry"] = df["geometry"].to_wkt()
+        return pd.DataFrame(df)
 
-    def read_geom_uf(self) -> gpd.GeoDataFrame:
+    def read_geom_uf(self) -> pd.DataFrame:
         """Read geometries for Brazilian states."""
         params = self.uf_params.read
         url = params.get("url")
-        return gpd.read_file(url)
+        df = gpd.read_file(url)
+        df["geometry"] = df["geometry"].to_wkt()
+        return pd.DataFrame(df)
 
     def read(self) -> dict[str, pd.DataFrame]:
         """Read data from both Conab and PAM sources."""
