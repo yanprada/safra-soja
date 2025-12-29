@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from functools import reduce
 from typing import Dict, Any, Protocol, Type, List
 
@@ -105,7 +106,7 @@ class CalculateDiffStrategy:
             pct_col = f"rate_{col1.replace('_pam', '')}_conab_pam"
             df = data[table].copy()
             df[diff_col] = df[col1] - df[col2]
-            df[pct_col] = (df[col1] / df[col2].replace(0, pd.NA)).fillna(0)
+            df[pct_col] = (df[col1] / df[col2].replace(0, np.nan)).fillna(0)
             dfs.append(df[group_cols + [diff_col, pct_col]])
         dfs.append(data[table])
         if dfs:
@@ -228,7 +229,7 @@ class CalculateCorrStrategy:
         return data
 
 
-class CalculateAreaGrowthStrategy:
+class CalculateTemporalGrowthStrategy:
     """Calculates production and area growth over years."""
 
     def apply(
@@ -253,7 +254,7 @@ class CalculateAreaGrowthStrategy:
                 df_merged[growth_col] = (
                     (df_merged[f"{col}_target"] - df_merged[f"{col}_base"])
                     / df_merged[f"{col}_base"].replace(0, pd.NA)
-                ).fillna(0)
+                ).fillna(0) * 100
 
             data[output_name + "_" + table_name] = df_merged
         return data
@@ -286,7 +287,7 @@ class DataTransformer:
             "calculate_pct_mun_uf": CalculatePctStrategy,
             "project_pam_next_year": CalculateProjectionStrategy,
             "calculate_area_productivity_correlation": CalculateCorrStrategy,
-            "calculate_production_area_growth": CalculateAreaGrowthStrategy,
+            "calculate_temporal_growth": CalculateTemporalGrowthStrategy,
         }
 
     def _merge_table(
