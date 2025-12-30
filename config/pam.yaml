@@ -44,10 +44,12 @@ transform:
                 merge_on: ["cd_mun"]
                 how: "left"
                 suffixes: ["_pam", "_mun"]
+                exclude_cols: ["geometry"]
             geom_uf: 
                 merge_on: ["sg_uf"]
                 how: "left"
                 suffixes: ["_pam", "_uf"]
+                exclude_cols: ["geometry"]
             conab: 
                 merge_on: ["ano","sg_uf"]
                 how: "left"
@@ -65,7 +67,6 @@ transform:
             area_plantada_ha_conab: "first"
             quantidade_producao_t_conab: "first"
             rendimento_medio_kg_ha_conab: "first"
-            geometry_uf: "first"
     
     calculate_diff_pam_conab:
         dataframe: "pam_uf"

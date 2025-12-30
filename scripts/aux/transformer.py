@@ -293,11 +293,19 @@ class DataTransformer:
     def _merge_table(
         self, data: Dict[str, pd.DataFrame], main_key: str, params: Dict[str, Any]
     ) -> pd.DataFrame:
-        df = data[main_key]
+        df = data[main_key].copy()
         for table_name, merge_params in params.items():
             if table_name not in data:
                 continue
-            other_df = data[table_name]
+            cols_to_exclude = merge_params.get("exclude_cols", [])
+            if cols_to_exclude:
+                other_df = (
+                    data[table_name]
+                    .copy()
+                    .drop(columns=cols_to_exclude, errors="ignore")
+                )
+            else:
+                other_df = data[table_name].copy()
             df = df.merge(
                 other_df,
                 on=merge_params.get("merge_on"),
