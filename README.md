@@ -12,7 +12,7 @@ O projeto consiste na extração, tratamento e visualização de dados agrícola
     *   Comparativo entre fontes (IBGE vs. CONAB).
     *   Cálculo de representatividade municipal (PAM/IBGE).
     *   Alocação (projeção) da área plantada da safra 21/22 nos municípios baseada na representatividade histórica.
-4.  **Visualização:** Desenvolvimento de um Dashboard no Power BI.
+4.  **Visualização:** Desenvolvimento de um Dashboard com Streamlit.
 
 ## 🛠️ Ferramentas Utilizadas
 
@@ -21,6 +21,8 @@ O projeto consiste na extração, tratamento e visualização de dados agrícola
 *   **Fontes de Dados:**
     *   [IBGE - Pesquisa Agrícola Municipal (PAM)](https://sidra.ibge.gov.br/pesquisa/pam/tabelas)
     *   [CONAB - Série Histórica de Grãos](https://portaldeinformacoes.conab.gov.br/downloads/arquivos/SerieHistoricaGraos.txt)
+    *   [Geometria dos Municípios Brasileiros](https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2024/Brasil/BR_Municipios_2024.zip)
+    *   [Geometria dos Estados Brasileiros](https://raw.githubusercontent.com/giuliano-macedo/geodata-br-states/refs/heads/main/geojson/br_states.json)
 
 ## 🗂️ Estrutura do Repositório
 
@@ -42,15 +44,22 @@ O projeto consiste na extração, tratamento e visualização de dados agrícola
 ## 🚀 Como Executar
 
 ### Pré-requisitos
-*   UV instalado.
+*   [UV instalado](https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_2).
 *   Python 3.x (caso queira rodar os scripts de ETL).
 
 ### Passos
-1.  **Scripts de Tratamento:**
-    *   Execute o comando `uv run python -m main`.
+1.  **Instalar dependências e configurar o ambiente:**
+    *   Execute o comando `uv sync` na raiz do projeto.
+    *   Caso o usuário deseje criar um ambiente virtual manualmente, utilize `python -m venv .venv` e ative-o conforme o sistema operacional.
+    *   Instale as dependências com `pip install -r requirements.txt`.
 
-2.  **Dashboard:**
+2.  **Scripts de Tratamento:**
+    *   Execute o comando `uv run python -m main`.
+    *   Caso o usuário opte por não utilizar o UV, execute `python -m main` diretamente (assegurando que as dependências estejam instaladas).
+
+3.  **Dashboard:**
     *   Execute o comando `uv run streamlit run dashboard/dashboard.py`.
+    *   Ou, se não estiver utilizando o UV, execute `streamlit run dashboard/dashboard.py` diretamente.
     *   O painel contém uma única tela interativa permitindo filtros por escala geográfica (País, Estado, Município).
 
 ## 📊 Metodologia Aplicada
