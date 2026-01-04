@@ -374,9 +374,9 @@ class DataTransformer:
             dataset_config = self.config.get(key, {})
             transform_config = dataset_config.get("transform", {})
 
-            for calc_name, strategy_cls in self._calculation_strategies.items():
-                calc_params = transform_config.get(calc_name)
-                if calc_params:
+            for calc_name, calc_params in transform_config.items():
+                strategy_cls = self._calculation_strategies.get(calc_name)
+                if strategy_cls:
                     strategy = strategy_cls()
                     data = strategy.apply(data, calc_params)
 
