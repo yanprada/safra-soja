@@ -58,6 +58,7 @@ df_growth_uf = data["growth_pam_uf"]
 if nivel_geo == "Brasil":
     regiao = None
     ufs = None  # No additional filters
+    municipios = None
 else:
     regiao = st.sidebar.multiselect(
         "Região", sorted(df_mun["regiao"].dropna().unique())
@@ -69,6 +70,19 @@ else:
         ufs_options = sorted(df_mun["sg_uf"].unique())
 
     ufs = st.sidebar.multiselect("UF", ufs_options)
+
+    municipios = None
+    if nivel_geo == "Município":
+        # Filter options based on current selections
+        df_opts = df_mun.copy()
+        if regiao:
+            df_opts = df_opts[df_opts["regiao"].isin(regiao)]
+        if ufs:
+            df_opts = df_opts[df_opts["sg_uf"].isin(ufs)]
+
+        mun_options = sorted(df_opts["nm_mun"].unique())
+        municipios = st.sidebar.multiselect("Município", mun_options)
+
 anos = st.sidebar.multiselect(
     "Ano da Safra",
     sorted(df_mun["ano"].unique()),
@@ -110,6 +124,17 @@ if ufs:
     df_filt = df_filt[df_filt["sg_uf"].isin(ufs)]
     df_filt_growth = df_filt_growth[df_filt_growth["sg_uf"].isin(ufs)]
     context_text += f" Filtro de UF ativo: **{', '.join(ufs)}**."
+
+if municipios:
+    df_filt = df_filt[df_filt["nm_mun"].isin(municipios)]
+    df_filt_growth = df_filt_growth[df_filt_growth["nm_mun"].isin(municipios)]
+    mun_text = (
+        ", ".join(municipios)
+        if len(municipios) <= 5
+        else f"{len(municipios)} selecionados"
+    )
+    context_text += f" Filtro de Município ativo: **{mun_text}**."
+
 if anos:
     df_filt = df_filt[df_filt["ano"].isin(anos)]
     context_text += f" Filtro de Ano ativo: **{', '.join(map(str, anos))}**."
@@ -206,9 +231,10 @@ with col_map_viz:
 
     # Optimized Map Logic
     if nivel_geo == "Município":
-        if not ufs or len(ufs) != 1:
+        # Allow map if specific municipalities are selected OR if only 1 UF is selected
+        if (not ufs or len(ufs) != 1) and not municipios:
             st.warning(
-                "⚠️ Para visualizar o mapa por município, por favor selecione **apenas uma UF** no menu lateral (para performance)."
+                "⚠️ Para visualizar o mapa por município, por favor selecione **apenas uma UF** no menu lateral ou **filtre municípios específicos** (para performance)."
             )
         else:
             stats = df_filt.groupby(["cd_mun", "nm_mun"], as_index=False).agg(
@@ -277,15 +303,30 @@ with col_rank:
         .tail(10)
     )  # Tail because barh plots bottom-up
 
+    # Logic to include sg_uf in hover for municipalities
+    hover_data = None
+    if entity_col == "nm_mun":
+        # Retrieve sg_uf from original filtered data
+        uf_mapping = df_filt[[entity_col, "sg_uf"]].drop_duplicates(subset=entity_col)
+        df_rank = df_rank.merge(uf_mapping, on=entity_col, how="left")
+        # Ensure order is preserved for the chart
+        df_rank = df_rank.sort_values("val", ascending=True)
+        hover_data = ["sg_uf"]
+
     fig_bar = px.bar(
         df_rank,
         x="val",
         y=entity_col,
         orientation="h",
         text_auto=".2s",
-        labels={"val": selected_metric_label, entity_col: entity_name},
+        labels={
+            "val": selected_metric_label,
+            entity_col: entity_name,
+            "sg_uf": "Estado",
+        },
         color="val",
         color_continuous_scale="Greens",
+        hover_data=hover_data,
     )
     fig_bar.update_layout(showlegend=False, coloraxis_showscale=False)
     st.plotly_chart(fig_bar, width="stretch")
@@ -323,7 +364,7 @@ if database == "PAM":
             """
         Este gráfico divide os locais em 4 quadrantes baseados no crescimento de **Área** (Eixo X) e **Produtividade** (Eixo Y):
         - 🟢 **Quadrante Superior Direito:** Crescimento em Área e Produtividade.
-        - 🟠 **Quadrante Inferior Direito:** Expansão de Área, mas queda na Produtividade.
+        - 🟠 **Quadrante Inferior Direito:** Expansão de Área, mas queda na Produtividade (Pior Cenário).
         - 🔵 **Quadrante Superior Esquerdo:** Redução de Área, mas ganho de eficiência (Produtividade).
         - 🔴 **Quadrante Inferior Esquerdo:** Retração em ambos os indicadores.
         """
@@ -365,6 +406,7 @@ if database == "PAM":
             labels={
                 "growth_area_plantada_ha_pam": "Δ Área Plantada (ha)",
                 "growth_rendimento_medio_kg_ha_pam": "Δ Rendimento (kg/ha)",
+                "sg_uf": "Estado",
             },
             title=f"Dispersão de Crescimento: {entity_name}s",
         )
@@ -436,6 +478,8 @@ if database == "PAM":
             df_proj = df_proj[df_proj["regiao"].isin(regiao)]
         if ufs:
             df_proj = df_proj[df_proj["sg_uf"].isin(ufs)]
+        if municipios:
+            df_proj = df_proj[df_proj["nm_mun"].isin(municipios)]
 
         # Specific Municipality Filter for Projections
         available_muns = sorted(df_proj["nm_mun"].dropna().unique())
@@ -557,6 +601,8 @@ with col_box:
         df_box_source = df_box_source[df_box_source["regiao"].isin(regiao)]
     if ufs:
         df_box_source = df_box_source[df_box_source["sg_uf"].isin(ufs)]
+    if municipios:
+        df_box_source = df_box_source[df_box_source["nm_mun"].isin(municipios)]
 
     fig_box = px.box(
         df_box_source,
@@ -564,9 +610,12 @@ with col_box:
         y=f"rendimento_medio_kg_ha_{database.lower()}",
         color="regiao",
         points="outliers",  # Show only outliers to avoid performance hit on heavy rendering
+        hover_name="nm_mun",  # Add municipality name to hover
+        hover_data=["sg_uf"],  # Add state to hover
         labels={
             f"rendimento_medio_kg_ha_{database.lower()}": "Rendimento (kg/ha)",
             "regiao": "Região",
+            "sg_uf": "Estado",
         },
     )
     fig_box.update_layout(showlegend=False)
@@ -578,20 +627,31 @@ if database == "PAM":
         "O tamanho da bolha representa a **Quantidade Produzida (t)**. Buscamos bolhas no canto superior esquerdo (Alto Valor, Menor Área)."
     )
 
+    # Aggregate data based on user selection (State or Municipality)
+    # Logic: Sum Production and Value, Mean for Planted Area
+    df_bubble = df_filt.groupby(entity_col, as_index=False).agg(
+        {
+            f"area_plantada_ha_{database.lower()}": "mean",
+            "valor_producao_mil_reais": "sum",
+            f"quantidade_producao_t_{database.lower()}": "sum",
+            "regiao": "first",
+        }
+    )
+
     fig_bubble = px.scatter(
-        df_filt,
+        df_bubble,
         x=f"area_plantada_ha_{database.lower()}",
         y="valor_producao_mil_reais",
-        size="quantidade_producao_t_pam",
+        size=f"quantidade_producao_t_{database.lower()}",
         color="regiao",
         hover_name=entity_col,
         log_x=True,  # Log scale helps visualization when there are huge disparities
         log_y=True,
         size_max=60,
         labels={
-            "area_plantada_ha_pam": "Área Plantada (ha) [Log]",
+            f"area_plantada_ha_{database.lower()}": "Área Plantada (ha) [Log]",
             "valor_producao_mil_reais": "Valor da Produção (Mil R$) [Log]",
-            "quantidade_producao_t_pam": "Produção (t)",
+            f"quantidade_producao_t_{database.lower()}": "Produção (t)",
             "regiao": "Região",
         },
     )
@@ -644,6 +704,7 @@ if database == "PAM":
         df_filt_growth[cols_to_show]
         .rename(columns=cols_rename)
         .sort_values("Cresc. Área (%)", ascending=False)
+        .round(2)
     )
 
     st.dataframe(df_display, width="stretch", hide_index=True)
